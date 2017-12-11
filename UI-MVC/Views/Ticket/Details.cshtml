@@ -1,0 +1,135 @@
+﻿@model SC.BL.Domain.Ticket
+
+@{
+    ViewBag.Title = "Details";
+}
+
+<h2>Details</h2>
+
+<div>
+    <h4>Ticket</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.TicketNumber)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.TicketNumber)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.AccountId)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.AccountId)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.Text)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.Text)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.DateOpened)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.DateOpened)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.State)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.State)
+            <span id="state">
+            @if (Model.State != SC.BL.Domain.TicketState.Closed)
+            {
+             <button type="button" class="btn btn-default btn-xs" onclick="closeTicket(@Model.TicketNumber)">Close</button>
+            }
+            </span>
+        </dd>
+
+    </dl>
+</div>
+<p>
+    @Html.ActionLink("Edit", "Edit", new { Model = Model.TicketNumber }) |
+    @Html.ActionLink("Back to List", "Index")
+</p>
+
+<h4>Responses</h4>
+<p>
+    <btn class="btn btn-default" onclick="loadResponsesOfTicket(@Model.TicketNumber)">Inladen responses</btn>
+</p>
+
+<div id="addNewResponse" style="display:none;">
+    <table id="responses" class="table">
+        <tr>
+            <th>Responses</th>
+            <th>Date</th>
+            <th>IsClientResponse</th>
+            <th></th>
+        </tr>
+    </table>
+    <input id="responseText" name="responseText" type="text" class="form-control"
+           style="width: 300px; float: left; margin-right: 5px" />
+    <button type="button" class="btn btn-default" onclick="postResponse()">Verzenden</button>
+</div>
+
+
+@section scripts {
+<script>
+    function loadResponsesOfTicket(id){
+        $.ajax("/api/TicketResponse/"+id, { type: 'GET', DataType: 'json' })
+            .done(function (data) { showTicketResponses(data);})
+            .fail(function(){alert('Call failed')});
+    }
+
+    function showTicketResponses(responses) {
+        $.each(responses, function (index, value) { addResponseToList(value); });
+        $("#addNewResponse").show();
+    }
+
+    function addResponseToList(response) {
+        var date = new Date(response.Date);
+        var checked = response.IsClientResponse ? 'checked="checked"' : '';
+        $('table#responses').append('<tr>'
+        + '<td>' + response.Text + '</td>'
+        + '<td>' + date.toLocaleDateString() + ' ' + date.toLocaleDateString() + '<td>'
+        + '<td><input type="checkbox" class="check-box" disabled="disabled" ' + checked + '/></td>'
+        +'</tr>');
+    }
+
+    function postResponse() {
+         var ticketNumber = '@Model.TicketNumber';
+         var response = $('#responseText').val();
+         if (response != '') {
+            $.ajax('/api/TicketResponse', {
+                type: 'POST',
+                data: JSON.stringify({ TicketNumber: ticketNumber,
+                                       ResponseText: response,
+                                       IsClientResponse: false }),
+                contentType : 'application/json',
+                dataType: 'json' // data-type expected back
+            })
+            .done(function (data) { addResponseToList(data);
+                                    $('#responseText').val(''); })
+            .fail(function () { alert('Oeps, something went wrong!'); });
+          }
+    }
+
+    function closeTicket(ticketNumber){
+        $.ajax('/api/Ticket/' + ticketNumber + '/State/Closed', {
+            type: 'PUT'
+        })
+        .done(function (data) { $('#state').html('Closed'); })
+        .fail(function () { alert('Something went wrong'); });
+    }
+</script>
+}
